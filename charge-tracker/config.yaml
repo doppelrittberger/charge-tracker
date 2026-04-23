@@ -19,3 +19,5 @@ environment:
   CHARGE_TRACKER_DATA_FILE: /share/charge-sessions.json
 startup: application
 boot: auto
+panel_icon: mdi:ev-station
+panel_admin: false
