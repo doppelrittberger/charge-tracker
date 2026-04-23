@@ -1,6 +1,7 @@
 package com.evcharge.web;
 
 import com.evcharge.service.ChargeSessionService;
+import com.evcharge.service.OdometerService;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.inject.Inject;
@@ -18,11 +19,15 @@ public class DashboardController {
     @Inject
     ChargeSessionService service;
 
+    @Inject
+    OdometerService odometerService;
+
     @GET
     @Produces(MediaType.TEXT_HTML)
     public TemplateInstance index() {
         return dashboard
             .data("sessions", service.getAllSessions())
-            .data("statistics", service.getStatistics());
+            .data("statistics", service.getStatistics())
+            .data("odometer", odometerService.getOdometer().orElse(null));
     }
 }

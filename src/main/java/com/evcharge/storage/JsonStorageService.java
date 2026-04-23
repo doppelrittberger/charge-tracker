@@ -1,6 +1,7 @@
 package com.evcharge.storage;
 
 import com.evcharge.model.ChargeSession;
+import com.evcharge.model.OdometerSnapshot;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -14,8 +15,11 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,6 +32,7 @@ public class JsonStorageService {
     String dataFile;
     
     private final ConcurrentHashMap<Long, ChargeSession> sessionCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, OdometerSnapshot> snapshotCache = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);
     private final ObjectMapper objectMapper;
 
@@ -52,6 +57,9 @@ public class JsonStorageService {
                 StorageWrapper wrapper = objectMapper.readValue(file, StorageWrapper.class);
                 sessionCache.clear();
                 wrapper.sessions.forEach(session -> sessionCache.put(session.sessionId, session));
+                if (wrapper.odometerSnapshots != null) {
+                    wrapper.odometerSnapshots.forEach(s -> snapshotCache.put(s.yearMonth, s));
+                }
                 
                 long maxId = wrapper.sessions.stream()
                     .mapToLong(s -> s.sessionId)
@@ -72,6 +80,7 @@ public class JsonStorageService {
             if (file.getParentFile() != null) file.getParentFile().mkdirs();
             StorageWrapper wrapper = new StorageWrapper();
             wrapper.sessions = new ArrayList<>(sessionCache.values());
+            wrapper.odometerSnapshots = new ArrayList<>(snapshotCache.values());
             objectMapper.writeValue(file, wrapper);
             LOG.debug("Saved " + sessionCache.size() + " sessions to " + dataFile);
         } catch (IOException e) {
@@ -138,7 +147,21 @@ public class JsonStorageService {
         return removed;
     }
 
+    public void saveSnapshot(OdometerSnapshot snapshot) {
+        snapshotCache.put(snapshot.yearMonth, snapshot);
+        saveToFile();
+    }
+
+    public Optional<OdometerSnapshot> findSnapshot(YearMonth yearMonth) {
+        return Optional.ofNullable(snapshotCache.get(yearMonth.toString()));
+    }
+
+    public List<OdometerSnapshot> findAllSnapshots() {
+        return new ArrayList<>(snapshotCache.values());
+    }
+
     public static class StorageWrapper {
         public List<ChargeSession> sessions = new ArrayList<>();
+        public List<OdometerSnapshot> odometerSnapshots = new ArrayList<>();
     }
 }

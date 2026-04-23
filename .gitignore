@@ -6,3 +6,4 @@ charge-sessions.json
 /.idea/
 /target/
 /charge-tracker.iml
+.env

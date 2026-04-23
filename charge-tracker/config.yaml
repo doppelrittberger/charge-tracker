@@ -1,5 +1,5 @@
 name: charge-tracker
-version: "1.0.4"
+version: "1.1.0"
 slug: charge-tracker
 description: Track and visualize your EV charging sessions
 url: "https://github.com/doppelrittberger/charge-tracker"
@@ -14,13 +14,34 @@ legacy: true
 stage: stable
 ingress: true
 ingress_port: 8080
+host_network: true
 init: false
 watchdog: http://[HOST]:[PORT:8080]
 webui: http://[HOST]:[PORT:8080]/
 map:
   - share:rw
+options:
+  evcc_url: http://[HOST]:7070
+  evcc_import_enabled: false
+  ha_url: http://[HOST]:8123
+  ha_token: ""
+  ha_odometer_entity: sensor.skoda_elroq_kilometerstand
+  ha_odometer_enabled: false
+schema:
+  evcc_url: str
+  evcc_import_enabled: bool
+  ha_url: str
+  ha_token: str
+  ha_odometer_entity: str
+  ha_odometer_enabled: bool
 environment:
   CHARGE_TRACKER_DATA_FILE: /share/charge-sessions.json
+  QUARKUS_REST_CLIENT_EVCC_API_URL: "{{evcc_url}}"
+  EVCC_IMPORT_ENABLED: "{{evcc_import_enabled}}"
+  QUARKUS_REST_CLIENT_HA_API_URL: "{{ha_url}}"
+  HA_ODOMETER_TOKEN: "{{ha_token}}"
+  HA_ODOMETER_ENTITY: "{{ha_odometer_entity}}"
+  HA_ODOMETER_ENABLED: "{{ha_odometer_enabled}}"
 startup: application
 panel_icon: mdi:ev-station
 panel_admin: false
