@@ -10,9 +10,12 @@ import java.time.LocalDateTime;
 public class ChargeSession {
 
     public Long sessionId;
+    public Long evccId;
     public LocalDateTime timestamp;
     public BigDecimal kwhAmount;
     public BigDecimal pricePerKwh;
+    public Long odometerKm;
+    public Integer socStart;
 
     public ChargeSession() {
     }

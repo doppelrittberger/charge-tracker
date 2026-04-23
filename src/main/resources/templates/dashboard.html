@@ -100,12 +100,32 @@
                 </div>
             </div>
             {/if}
+            {#if soc}
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card stat-card" style="border-left-color: #0dcaf0;">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted" data-i18n="statSoc"></h6>
+                        <h2 class="card-title mb-0">{soc}%</h2>
+                    </div>
+                </div>
+            </div>
+            {/if}
             {#if statistics.pricePer100km}
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card stat-card" style="border-left-color: #20c997;">
                     <div class="card-body">
                         <h6 class="card-subtitle mb-2 text-muted" data-i18n="statPricePer100km"></h6>
                         <h2 class="card-title mb-0">€{statistics.pricePer100km}</h2>
+                    </div>
+                </div>
+            </div>
+            {/if}
+            {#if statistics.kwhPer100km}
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card stat-card" style="border-left-color: #fd7e14;">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted" data-i18n="statKwhPer100km"></h6>
+                        <h2 class="card-title mb-0">{statistics.kwhPer100km} kWh</h2>
                     </div>
                 </div>
             </div>
@@ -141,6 +161,18 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="mb-3">
+                                        <label for="odometerKm" class="form-label" data-i18n="labelOdometer"></label>
+                                        <input type="number" step="1" class="form-control" id="odometerKm">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="socEnd" class="form-label" data-i18n="labelSocEnd"></label>
+                                        <input type="number" min="0" max="100" step="1" class="form-control" id="socEnd" placeholder="%">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
                                         <label class="form-label">&nbsp;</label>
                                         <button type="submit" class="btn btn-primary w-100">
                                             <i class="bi bi-plus-lg"></i> <span data-i18n="btnAdd"></span>
@@ -149,6 +181,21 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-speedometer2"></i> <span data-i18n="chartEfficiency"></span></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="efficiencyChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -247,16 +294,26 @@
                                         <th>kWh</th>
                                         <th data-i18n="colPrice"></th>
                                         <th data-i18n="colTotal"></th>
+                                        <th data-i18n="colOdometer"></th>
+                                        <th data-i18n="colKm"></th>
+                                        <th data-i18n="colSoc"></th>
+                                        <th data-i18n="colPer100km"></th>
+                                        <th data-i18n="colKwhPer100km"></th>
                                         <th data-i18n="colActions"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="sessionsTable">
                                     {#for session in sessions}
                                     <tr class="session-card">
-                                        <td>{session.timestamp}</td>
+                                        <td class="ts" data-utc="{session.timestamp}"></td>
                                         <td><span class="badge bg-success">{session.kwhAmount} kWh</span></td>
                                         <td>€{session.pricePerKwh}</td>
                                         <td><strong>€{session.getTotalPrice()}</strong></td>
+                                        <td>{#if session.odometerKm != null}{session.odometerKm} km{#else}—{/if}</td>
+                                        <td>{#if session.kmDriven != null}{session.kmDriven} km{#else}—{/if}</td>
+                                        <td>{#if session.socStart != null}{session.socStart}% → {session.socEnd}%{#else}—{/if}</td>
+                                        <td>{#if session.pricePer100km != null}€{session.pricePer100km}{#else}—{/if}</td>
+                                        <td>{#if session.kwhPer100km != null}{session.kwhPer100km} kWh{#else}—{/if}</td>
                                         <td>
                                             <button class="btn btn-sm btn-danger" onclick="deleteSession({session.sessionId})" data-i18n-title="btnDelete">
                                                 <i class="bi bi-trash"></i> <span data-i18n="btnDelete"></span>
@@ -275,13 +332,19 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const currentOdometer = {#if odometer}{odometer}{#else}null{/if};
+        const currentSoc = {#if soc}{soc}{#else}null{/if};
+        const batteryCapacityKwh = {#if batteryCapacityKwh}{batteryCapacityKwh}{#else}77.0{/if};
+
         let sessionsData = [
             {#for session in sessions}
             {
                 sessionId: {session.sessionId},
                 timestamp: "{session.timestamp}",
                 kwhAmount: {session.kwhAmount},
-                pricePerKwh: {session.pricePerKwh}
+                pricePerKwh: {session.pricePerKwh},
+                kwhPer100km: {#if session.kwhPer100km}{session.kwhPer100km}{#else}null{/if},
+                pricePer100km: {#if session.pricePer100km}{session.pricePer100km}{#else}null{/if}
             }{#if session_hasNext},{/if}
             {/for}
         ];
@@ -294,7 +357,11 @@
                 statAvgPrice:  'Avg Price/kWh',
                 statTotalCost: 'Total Cost',
                 statOdometer:    'Mileage',
+                statSoc:         'State of Charge',
+                colOdometer:     'Odometer',
+                colKm:           'km driven',
                 statPricePer100km:'Cost per 100km',
+                statKwhPer100km: 'Avg kWh/100km',
                 monthlyTitle:    'Monthly Overview',
                 monthlyMonth:    'Month',
                 monthlySessions: 'Sessions',
@@ -306,7 +373,13 @@
                 labelTimestamp:'Date & Time',
                 labelKwh:      'kWh Amount',
                 labelPrice:    'Price per kWh (€)',
+                labelOdometer: 'Odometer (km)',
+                labelSocEnd:   'SoC End (%)',
+                colSoc:        'SoC',
+                colPer100km:   '€/100km',
+                colKwhPer100km:'kWh/100km',
                 btnAdd:        'Add Session',
+                chartEfficiency: 'Efficiency per Trip',
                 chartKwh:      'kWh per Session',
                 chartCost:     'Cost Distribution',
                 tableTitle:    'Charge Sessions',
@@ -331,7 +404,11 @@
                 statAvgPrice:  'Ø Preis/kWh',
                 statTotalCost: 'Gesamtkosten',
                 statOdometer:    'Kilometerstand',
+                statSoc:         'Ladezustand',
+                colOdometer:     'Kilometerstand',
+                colKm:           'km gefahren',
                 statPricePer100km:'Kosten pro 100km',
+                statKwhPer100km: 'Ø kWh/100km',
                 monthlyTitle:    'Monatliche Übersicht',
                 monthlyMonth:    'Monat',
                 monthlySessions: 'Ladevorgänge',
@@ -343,7 +420,13 @@
                 labelTimestamp:'Datum & Uhrzeit',
                 labelKwh:      'kWh-Menge',
                 labelPrice:    'Preis pro kWh (€)',
+                labelOdometer: 'Kilometerstand (km)',
+                labelSocEnd:   'SoC Ende (%)',
+                colSoc:        'SoC',
+                colPer100km:   '€/100km',
+                colKwhPer100km:'kWh/100km',
                 btnAdd:        'Hinzufügen',
+                chartEfficiency: 'Effizienz pro Fahrt',
                 chartKwh:      'kWh pro Ladevorgang',
                 chartCost:     'Kostenverteilung',
                 tableTitle:    'Ladevorgänge',
@@ -397,6 +480,18 @@
             applyTranslations();
         }
 
+        function formatTs(isoUtc) {
+            const d = new Date(isoUtc + 'Z');
+            return d.toLocaleString(undefined, {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        document.querySelectorAll('td.ts[data-utc]').forEach(td => {
+            td.textContent = formatTs(td.getAttribute('data-utc'));
+        });
+
         function toLocalDateTimeString(date) {
             const pad = n => String(n).padStart(2, '0');
             return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -409,14 +504,31 @@
         }
         initTimestamp();
 
+        if (currentOdometer !== null) {
+            document.getElementById('odometerKm').value = currentOdometer;
+        }
+        if (currentSoc !== null) {
+            document.getElementById('socEnd').value = currentSoc;
+        }
+
         document.getElementById('addSessionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const tsValue = document.getElementById('sessionTimestamp').value;
+            const odoValue = document.getElementById('odometerKm').value;
+            const socEndValue = document.getElementById('socEnd').value;
+            const kwhValue = parseFloat(document.getElementById('kwhAmount').value);
+            const capacityKwh = batteryCapacityKwh;
+            let socStartValue = null;
+            if (socEndValue !== '' && !isNaN(kwhValue) && capacityKwh > 0) {
+                socStartValue = Math.max(0, Math.round(parseInt(socEndValue) - (kwhValue / capacityKwh * 100)));
+            }
             const data = {
                 timestamp: tsValue ? tsValue + ':00' : null,
-                kwhAmount: parseFloat(document.getElementById('kwhAmount').value),
-                pricePerKwh: parseFloat(document.getElementById('pricePerKwh').value)
+                kwhAmount: kwhValue,
+                pricePerKwh: parseFloat(document.getElementById('pricePerKwh').value),
+                odometerKm: odoValue !== '' ? parseInt(odoValue) : null,
+                socStart: socStartValue
             };
 
             try {
@@ -484,7 +596,7 @@
             const tbody = document.getElementById('sessionsTable');
             tbody.innerHTML = sessions.map(session => `
                 <tr class="session-card">
-                    <td>${session.timestamp}</td>
+                    <td>${formatTs(session.timestamp)}</td>
                     <td><span class="badge bg-success">${parseFloat(session.kwhAmount).toFixed(2)} kWh</span></td>
                     <td>€${parseFloat(session.pricePerKwh).toFixed(2)}</td>
                     <td><strong>€${(session.kwhAmount * session.pricePerKwh).toFixed(2)}</strong></td>
@@ -496,6 +608,61 @@
                 </tr>
             `).join('');
         }
+
+        const effSessions = sessionsData.filter(s => s.kwhPer100km !== null && s.pricePer100km !== null);
+        const effLabels   = effSessions.map((s, i) => `#${i + 1} ${s.timestamp.substring(0, 10)}`);
+
+        new Chart(document.getElementById('efficiencyChart'), {
+            type: 'line',
+            data: {
+                labels: effLabels,
+                datasets: [
+                    {
+                        label: t('colKwhPer100km'),
+                        data: effSessions.map(s => parseFloat(s.kwhPer100km)),
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        fill: true,
+                        yAxisID: 'yKwh'
+                    },
+                    {
+                        label: t('colPer100km'),
+                        data: effSessions.map(s => parseFloat(s.pricePer100km)),
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        borderColor: 'rgba(255, 193, 7, 1)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        fill: true,
+                        yAxisID: 'yPrice'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    yKwh: {
+                        type: 'linear',
+                        position: 'left',
+                        beginAtZero: true,
+                        title: { display: true, text: 'kWh/100km', color: 'rgba(13, 110, 253, 1)' },
+                        ticks: { color: 'rgba(13, 110, 253, 1)' }
+                    },
+                    yPrice: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: '€/100km', color: 'rgba(255, 193, 7, 1)' },
+                        ticks: { color: 'rgba(255, 193, 7, 1)' }
+                    }
+                }
+            }
+        });
 
         const kwhData  = sessionsData.map(s => s.kwhAmount);
         const costData = sessionsData.map(s => totalPrice(s));

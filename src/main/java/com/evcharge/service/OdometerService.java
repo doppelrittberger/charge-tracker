@@ -37,7 +37,11 @@ public class OdometerService {
     @ConfigProperty(name = "ha.odometer.entity", defaultValue = "sensor.skoda_odometer")
     String entityId;
 
+    @ConfigProperty(name = "ha.soc.entity", defaultValue = "sensor.skoda_state_of_charge")
+    String socEntityId;
+
     private Long latestOdometer = null;
+    private Integer latestSoc = null;
     private YearMonth lastSnapshotMonth = null;
 
     void onStart(@Observes StartupEvent ev) {
@@ -60,6 +64,7 @@ public class OdometerService {
             LOG.debugf("Odometer updated: %d km", latestOdometer);
             maybeRecordBaselineSnapshot();
             maybeRecordMonthlySnapshot();
+            fetchSoc();
         } catch (Exception e) {
             LOG.errorf("Failed to fetch odometer from HA: %s", e.getMessage());
         }
@@ -93,6 +98,23 @@ public class OdometerService {
             lastSnapshotMonth = prevMonth;
             LOG.infof("Saved end-of-month odometer snapshot for %s: %d km", prevMonth, latestOdometer);
         }
+    }
+
+    private void fetchSoc() {
+        try {
+            HaApiClient.HaState socState = haApiClient.getState(socEntityId, "Bearer " + token);
+            if (socState != null && socState.state != null
+                    && !socState.state.equals("unavailable") && !socState.state.equals("unknown")) {
+                latestSoc = (int) Math.round(Double.parseDouble(socState.state));
+                LOG.debugf("SoC updated: %d%%", latestSoc);
+            }
+        } catch (Exception e) {
+            LOG.warnf("Failed to fetch SoC: %s", e.getMessage());
+        }
+    }
+
+    public Optional<Integer> getSoc() {
+        return Optional.ofNullable(latestSoc);
     }
 
     public Optional<Long> getOdometer() {

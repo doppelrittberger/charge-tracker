@@ -13,4 +13,5 @@ public class EvccSession {
     public Double price;
     public String loadpoint;
     public String vehicle;
+    public Double odometer;
 }

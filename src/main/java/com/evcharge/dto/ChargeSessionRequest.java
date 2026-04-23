@@ -7,6 +7,8 @@ public class ChargeSessionRequest {
     public BigDecimal kwhAmount;
     public BigDecimal pricePerKwh;
     public LocalDateTime timestamp;
+    public Long odometerKm;
+    public Integer socStart;
 
     public ChargeSessionRequest() {
     }
