@@ -2,7 +2,8 @@ name: Build & Push to Docker Hub
 
 on:
   push:
-    branches: [ main ]
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   build-and-push:
@@ -39,4 +40,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/charge-tracker:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/charge-tracker:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/charge-tracker:${{ github.ref_name }}
