@@ -1,6 +1,6 @@
-name: Charge Tracker
+name: charge-tracker
 version: "1.0.0"
-slug: charge_tracker
+slug: charge-tracker
 description: Track and visualize your EV charging sessions
 url: https://github.com/doppelrittberger/charge-tracker
 arch:
