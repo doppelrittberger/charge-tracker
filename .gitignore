@@ -1,0 +1,8 @@
+### Mac OS ###
+.DS_Store
+
+### Application Data ###
+charge-sessions.json
+/.idea/
+/target/
+/charge-tracker.iml

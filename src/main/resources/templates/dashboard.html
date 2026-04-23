@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Charge Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .stat-card {
+            border-left: 4px solid #0d6efd;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .session-card {
+            transition: all 0.2s;
+        }
+        .session-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .lang-btn {
+            opacity: 0.6;
+            font-size: 0.85rem;
+            padding: 2px 8px;
+        }
+        .lang-btn.active {
+            opacity: 1;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-primary mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-lightning-charge-fill"></i> EV Charge Tracker
+            </span>
+            <div class="d-flex gap-1">
+                <button class="btn btn-outline-light lang-btn" onclick="setLang('en')">EN</button>
+                <button class="btn btn-outline-light lang-btn" onclick="setLang('de')">DE</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted" data-i18n="statSessions"></h6>
+                        <h2 class="card-title mb-0">{statistics.sessionCount}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #198754;">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted" data-i18n="statKwh"></h6>
+                        <h2 class="card-title mb-0">{statistics.totalKwh}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #ffc107;">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted" data-i18n="statAvgPrice"></h6>
+                        <h2 class="card-title mb-0">€{statistics.averagePricePerKwh}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card" style="border-left-color: #dc3545;">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted" data-i18n="statTotalCost"></h6>
+                        <h2 class="card-title mb-0">€{statistics.totalPrice}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> <span data-i18n="addTitle"></span></h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="addSessionForm">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="sessionTimestamp" class="form-label" data-i18n="labelTimestamp"></label>
+                                        <input type="datetime-local" class="form-control" id="sessionTimestamp" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="kwhAmount" class="form-label" data-i18n="labelKwh"></label>
+                                        <input type="number" step="0.01" class="form-control" id="kwhAmount" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="pricePerKwh" class="form-label" data-i18n="labelPrice"></label>
+                                        <input type="number" step="0.01" class="form-control" id="pricePerKwh" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="bi bi-plus-lg"></i> <span data-i18n="btnAdd"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> <span data-i18n="chartKwh"></span></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="kwhChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> <span data-i18n="chartCost"></span></h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="costChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-list-ul"></i> <span data-i18n="tableTitle"></span></h5>
+                        <div>
+                            <input type="date" id="filterStart" class="form-control form-control-sm d-inline-block" style="width: auto;">
+                            <span class="mx-2" data-i18n="filterTo"></span>
+                            <input type="date" id="filterEnd" class="form-control form-control-sm d-inline-block" style="width: auto;">
+                            <button class="btn btn-sm btn-primary" onclick="filterSessions()">
+                                <i class="bi bi-funnel"></i> <span data-i18n="btnFilter"></span>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="clearFilter()">
+                                <i class="bi bi-x-circle"></i> <span data-i18n="btnClear"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th data-i18n="colDate"></th>
+                                        <th>kWh</th>
+                                        <th data-i18n="colPrice"></th>
+                                        <th data-i18n="colTotal"></th>
+                                        <th data-i18n="colActions"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sessionsTable">
+                                    {#for session in sessions}
+                                    <tr class="session-card">
+                                        <td>{session.timestamp}</td>
+                                        <td><span class="badge bg-success">{session.kwhAmount} kWh</span></td>
+                                        <td>€{session.pricePerKwh}</td>
+                                        <td><strong>€{session.getTotalPrice()}</strong></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteSession({session.sessionId})" data-i18n-title="btnDelete">
+                                                <i class="bi bi-trash"></i> <span data-i18n="btnDelete"></span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {/for}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let sessionsData = [
+            {#for session in sessions}
+            {
+                sessionId: {session.sessionId},
+                timestamp: "{session.timestamp}",
+                kwhAmount: {session.kwhAmount},
+                pricePerKwh: {session.pricePerKwh}
+            }{#if session_hasNext},{/if}
+            {/for}
+        ];
+
+        {|
+        const i18n = {
+            en: {
+                statSessions:  'Total Sessions',
+                statKwh:       'Total kWh',
+                statAvgPrice:  'Avg Price/kWh',
+                statTotalCost: 'Total Cost',
+                addTitle:      'Add New Charge Session',
+                labelTimestamp:'Date & Time',
+                labelKwh:      'kWh Amount',
+                labelPrice:    'Price per kWh (€)',
+                btnAdd:        'Add Session',
+                chartKwh:      'kWh per Session',
+                chartCost:     'Cost Distribution',
+                tableTitle:    'Charge Sessions',
+                filterTo:      'to',
+                btnFilter:     'Filter',
+                btnClear:      'Clear',
+                colDate:       'Date & Time',
+                colPrice:      'Price/kWh',
+                colTotal:      'Total Cost',
+                colActions:    'Actions',
+                btnDelete:     'Delete',
+                confirmDelete: 'Are you sure you want to delete this session?',
+                errAdd:        'Error adding session',
+                errDelete:     'Error deleting session',
+                errFilter:     'Please select both start and end dates',
+                chartKwhLabel: 'kWh',
+                chartCostLabel:'Cost (€)',
+            },
+            de: {
+                statSessions:  'Ladevorgänge',
+                statKwh:       'Gesamt kWh',
+                statAvgPrice:  'Ø Preis/kWh',
+                statTotalCost: 'Gesamtkosten',
+                addTitle:      'Neuen Ladevorgang hinzufügen',
+                labelTimestamp:'Datum & Uhrzeit',
+                labelKwh:      'kWh-Menge',
+                labelPrice:    'Preis pro kWh (€)',
+                btnAdd:        'Hinzufügen',
+                chartKwh:      'kWh pro Ladevorgang',
+                chartCost:     'Kostenverteilung',
+                tableTitle:    'Ladevorgänge',
+                filterTo:      'bis',
+                btnFilter:     'Filtern',
+                btnClear:      'Zurücksetzen',
+                colDate:       'Datum & Uhrzeit',
+                colPrice:      'Preis/kWh',
+                colTotal:      'Gesamtkosten',
+                colActions:    'Aktionen',
+                btnDelete:     'Löschen',
+                confirmDelete: 'Diesen Ladevorgang wirklich löschen?',
+                errAdd:        'Fehler beim Hinzufügen',
+                errDelete:     'Fehler beim Löschen',
+                errFilter:     'Bitte Start- und Enddatum auswählen',
+                chartKwhLabel: 'kWh',
+                chartCostLabel:'Kosten (€)',
+            }
+        };
+
+        function detectLang() {
+            const saved = localStorage.getItem('lang');
+            if (saved && i18n[saved]) return saved;
+            const browser = (navigator.language || navigator.userLanguage || 'en').substring(0, 2).toLowerCase();
+            return i18n[browser] ? browser : 'en';
+        }
+
+        let currentLang = detectLang();
+
+        function t(key) {
+            return (i18n[currentLang] || i18n.en)[key] || key;
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.textContent = t(el.getAttribute('data-i18n'));
+            });
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === currentLang);
+            });
+            document.documentElement.lang = currentLang;
+            if (kwhChart) kwhChart.data.datasets[0].label = t('chartKwhLabel');
+            if (costChart) costChart.data.datasets[0].label = t('chartCostLabel');
+            if (kwhChart) kwhChart.update();
+            if (costChart) costChart.update();
+        }
+
+        function setLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('lang', lang);
+            applyTranslations();
+        }
+
+        function toLocalDateTimeString(date) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function initTimestamp() {
+            const now = new Date();
+            now.setSeconds(0, 0);
+            document.getElementById('sessionTimestamp').value = toLocalDateTimeString(now);
+        }
+        initTimestamp();
+
+        document.getElementById('addSessionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const tsValue = document.getElementById('sessionTimestamp').value;
+            const data = {
+                timestamp: tsValue ? tsValue + ':00' : null,
+                kwhAmount: parseFloat(document.getElementById('kwhAmount').value),
+                pricePerKwh: parseFloat(document.getElementById('pricePerKwh').value)
+            };
+
+            try {
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert(t('errAdd'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        async function deleteSession(sessionId) {
+            if (!confirm(t('confirmDelete'))) return;
+
+            try {
+                const response = await fetch(`/api/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert(t('errDelete'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function filterSessions() {
+            const start = document.getElementById('filterStart').value;
+            const end = document.getElementById('filterEnd').value;
+
+            if (!start || !end) {
+                alert(t('errFilter'));
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/sessions?start=${start}T00:00:00&end=${end}T23:59:59`);
+                const sessions = await response.json();
+                updateSessionsTable(sessions);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function clearFilter() {
+            location.reload();
+        }
+
+        function totalPrice(s) {
+            return s.kwhAmount * s.pricePerKwh;
+        }
+
+        function updateSessionsTable(sessions) {
+            const tbody = document.getElementById('sessionsTable');
+            tbody.innerHTML = sessions.map(session => `
+                <tr class="session-card">
+                    <td>${session.timestamp}</td>
+                    <td><span class="badge bg-success">${parseFloat(session.kwhAmount).toFixed(2)} kWh</span></td>
+                    <td>€${parseFloat(session.pricePerKwh).toFixed(2)}</td>
+                    <td><strong>€${(session.kwhAmount * session.pricePerKwh).toFixed(2)}</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteSession(${session.sessionId})">
+                            <i class="bi bi-trash"></i> ${t('btnDelete')}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        const kwhData  = sessionsData.map(s => s.kwhAmount);
+        const costData = sessionsData.map(s => totalPrice(s));
+        const labels   = sessionsData.map((s, i) => `#${i + 1} ${s.timestamp.substring(0, 10)}`);
+
+        const pieColors = [
+            'rgba(13,110,253,0.8)', 'rgba(25,135,84,0.8)', 'rgba(255,193,7,0.8)',
+            'rgba(220,53,69,0.8)',  'rgba(13,202,240,0.8)', 'rgba(111,66,193,0.8)',
+            'rgba(253,126,20,0.8)', 'rgba(32,201,151,0.8)', 'rgba(102,16,242,0.8)',
+            'rgba(214,51,132,0.8)'
+        ];
+        const pieColorsBorder = pieColors.map(c => c.replace('0.8', '1'));
+
+        const kwhChart = new Chart(document.getElementById('kwhChart'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: t('chartKwhLabel'),
+                    data: kwhData,
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                    borderColor: 'rgba(25, 135, 84, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        const priceGroups = {};
+        sessionsData.forEach(s => {
+            const key = parseFloat(s.pricePerKwh).toFixed(2);
+            if (!priceGroups[key]) priceGroups[key] = { totalCost: 0, totalKwh: 0, sessions: 0 };
+            priceGroups[key].totalCost += totalPrice(s);
+            priceGroups[key].totalKwh  += parseFloat(s.kwhAmount);
+            priceGroups[key].sessions  += 1;
+        });
+        const pieLabels   = Object.keys(priceGroups).sort((a, b) => parseFloat(a) - parseFloat(b));
+        const pieData     = pieLabels.map(k => priceGroups[k].totalCost);
+        const pieTotalSum = pieData.reduce((a, b) => a + b, 0);
+
+        const costChart = new Chart(document.getElementById('costChart'), {
+            type: 'pie',
+            data: {
+                labels: pieLabels,
+                datasets: [{
+                    label: t('chartCostLabel'),
+                    data: pieData,
+                    backgroundColor: pieColors.slice(0, pieLabels.length),
+                    borderColor: pieColorsBorder.slice(0, pieLabels.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            generateLabels(chart) {
+                                return pieLabels.map((price, i) => {
+                                    const g = priceGroups[price];
+                                    const pct = pieTotalSum > 0 ? (g.totalCost / pieTotalSum * 100).toFixed(1) : '0.0';
+                                    return {
+                                        text: `€${price}/kWh  |  ${g.sessions} session${g.sessions !== 1 ? 's' : ''}  ·  ${g.totalKwh.toFixed(2)} kWh  =  €${g.totalCost.toFixed(2)} (${pct}%)`,
+                                        fillStyle: pieColors[i % pieColors.length],
+                                        strokeStyle: pieColorsBorder[i % pieColorsBorder.length],
+                                        lineWidth: 1,
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const price = pieLabels[ctx.dataIndex];
+                                const g = priceGroups[price];
+                                const pct = pieTotalSum > 0 ? (g.totalCost / pieTotalSum * 100).toFixed(1) : '0.0';
+                                return ` ${g.sessions} session${g.sessions !== 1 ? 's' : ''}  ·  ${g.totalKwh.toFixed(2)} kWh  =  €${g.totalCost.toFixed(2)} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        applyTranslations();
+        |}
+    </script>
+</body>
+</html>
