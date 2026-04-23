@@ -314,9 +314,12 @@
                                         <td>{#if session.socStart != null}{session.socStart}% → {session.socEnd}%{#else}—{/if}</td>
                                         <td>{#if session.pricePer100km != null}€{session.pricePer100km}{#else}—{/if}</td>
                                         <td>{#if session.kwhPer100km != null}{session.kwhPer100km} kWh{#else}—{/if}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-danger" onclick="deleteSession({session.sessionId})" data-i18n-title="btnDelete">
-                                                <i class="bi bi-trash"></i> <span data-i18n="btnDelete"></span>
+                                        <td class="text-nowrap">
+                                            <button class="btn btn-sm btn-outline-secondary me-1" onclick="openEditModal({session.sessionId})" data-i18n-title="btnEdit" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSession({session.sessionId})" data-i18n-title="btnDelete" title="Delete">
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -325,6 +328,48 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-i18n="editTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editSessionForm">
+                        <input type="hidden" id="editSessionId">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label" data-i18n="labelTimestamp"></label>
+                                <input type="datetime-local" class="form-control" id="editTimestamp">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" data-i18n="labelKwh"></label>
+                                <input type="number" step="0.01" class="form-control" id="editKwh">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" data-i18n="labelPrice"></label>
+                                <input type="number" step="0.0001" class="form-control" id="editPrice">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" data-i18n="labelOdometer"></label>
+                                <input type="number" step="1" class="form-control" id="editOdometer">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" data-i18n="labelSocEnd"></label>
+                                <input type="number" min="0" max="100" step="1" class="form-control" id="editSocEnd">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btnCancel"></button>
+                    <button type="button" class="btn btn-primary" onclick="saveEdit()" data-i18n="btnSave"></button>
                 </div>
             </div>
         </div>
@@ -343,6 +388,9 @@
                 timestamp: "{session.timestamp}",
                 kwhAmount: {session.kwhAmount},
                 pricePerKwh: {session.pricePerKwh},
+                odometerKm: {#if session.odometerKm != null}{session.odometerKm}{#else}null{/if},
+                socStart: {#if session.socStart != null}{session.socStart}{#else}null{/if},
+                socEnd: {#if session.socEnd != null}{session.socEnd}{#else}null{/if},
                 kwhPer100km: {#if session.kwhPer100km}{session.kwhPer100km}{#else}null{/if},
                 pricePer100km: {#if session.pricePer100km}{session.pricePer100km}{#else}null{/if}
             }{#if session_hasNext},{/if}
@@ -378,6 +426,10 @@
                 colSoc:        'SoC',
                 colPer100km:   '€/100km',
                 colKwhPer100km:'kWh/100km',
+                btnEdit:       'Edit',
+                btnSave:       'Save',
+                btnCancel:     'Cancel',
+                editTitle:     'Edit Charge Session',
                 btnAdd:        'Add Session',
                 chartEfficiency: 'Efficiency per Trip',
                 chartKwh:      'kWh per Session',
@@ -425,6 +477,10 @@
                 colSoc:        'SoC',
                 colPer100km:   '€/100km',
                 colKwhPer100km:'kWh/100km',
+                btnEdit:       'Bearbeiten',
+                btnSave:       'Speichern',
+                btnCancel:     'Abbrechen',
+                editTitle:     'Ladevorgang bearbeiten',
                 btnAdd:        'Hinzufügen',
                 chartEfficiency: 'Effizienz pro Fahrt',
                 chartKwh:      'kWh pro Ladevorgang',
@@ -547,6 +603,53 @@
                 alert('Error: ' + error.message);
             }
         });
+
+        function openEditModal(sessionId) {
+            const s = sessionsData.find(s => s.sessionId === sessionId);
+            if (!s) return;
+            document.getElementById('editSessionId').value = s.sessionId;
+            document.getElementById('editTimestamp').value = s.timestamp.substring(0, 16);
+            document.getElementById('editKwh').value = s.kwhAmount;
+            document.getElementById('editPrice').value = s.pricePerKwh;
+            document.getElementById('editOdometer').value = s.odometerKm !== null ? s.odometerKm : '';
+            const socEndVal = s.socEnd !== null ? s.socEnd : (s.socStart !== null ? Math.min(100, s.socStart + Math.round(s.kwhAmount / batteryCapacityKwh * 100)) : '');
+            document.getElementById('editSocEnd').value = socEndVal;
+            applyTranslations();
+            new bootstrap.Modal(document.getElementById('editModal')).show();
+        }
+
+        async function saveEdit() {
+            const id = parseInt(document.getElementById('editSessionId').value);
+            const tsValue = document.getElementById('editTimestamp').value;
+            const kwhValue = parseFloat(document.getElementById('editKwh').value);
+            const socEndValue = document.getElementById('editSocEnd').value;
+            const odoValue = document.getElementById('editOdometer').value;
+            let socStartValue = null;
+            if (socEndValue !== '' && !isNaN(kwhValue) && batteryCapacityKwh > 0) {
+                socStartValue = Math.max(0, Math.round(parseInt(socEndValue) - (kwhValue / batteryCapacityKwh * 100)));
+            }
+            const data = {
+                timestamp: tsValue ? tsValue + ':00' : null,
+                kwhAmount: kwhValue,
+                pricePerKwh: parseFloat(document.getElementById('editPrice').value),
+                odometerKm: odoValue !== '' ? parseInt(odoValue) : null,
+                socStart: socStartValue
+            };
+            try {
+                const response = await fetch(`./api/sessions/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert(t('errAdd'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
 
         async function deleteSession(sessionId) {
             if (!confirm(t('confirmDelete'))) return;

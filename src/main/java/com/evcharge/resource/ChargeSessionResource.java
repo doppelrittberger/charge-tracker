@@ -49,6 +49,16 @@ public class ChargeSessionResource {
         return Response.ok(response).build();
     }
 
+    @PUT
+    @Path("/{id}")
+    public Response updateSession(@PathParam("id") Long id, ChargeSessionRequest request) {
+        ChargeSessionResponse response = service.updateSession(id, request);
+        if (response == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.ok(response).build();
+    }
+
     @DELETE
     @Path("/{id}")
     public Response deleteSession(@PathParam("id") Long id) {

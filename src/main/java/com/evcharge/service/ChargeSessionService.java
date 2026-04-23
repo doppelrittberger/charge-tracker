@@ -48,6 +48,20 @@ public class ChargeSessionService {
             .findFirst().orElse(new ChargeSessionResponse(storedSession, null, batteryCapacityKwh));
     }
 
+    public ChargeSessionResponse updateSession(Long id, ChargeSessionRequest request) {
+        ChargeSession session = storage.findById(id);
+        if (session == null) return null;
+        session.timestamp = request.timestamp != null ? request.timestamp : session.timestamp;
+        session.kwhAmount = request.kwhAmount;
+        session.pricePerKwh = request.pricePerKwh;
+        session.odometerKm = request.odometerKm;
+        session.socStart = request.socStart;
+        storage.save(session);
+        return toResponses(storage.findAll()).stream()
+            .filter(r -> r.sessionId.equals(id))
+            .findFirst().orElse(null);
+    }
+
     public List<ChargeSessionResponse> getAllSessions() {
         return toResponses(storage.findAll());
     }
