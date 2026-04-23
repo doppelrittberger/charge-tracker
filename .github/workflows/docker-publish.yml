@@ -3,7 +3,7 @@ name: Build & Push to Docker Hub
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
   build-and-push:
@@ -25,7 +25,8 @@ jobs:
           maven-version: 3.9.6
 
       - name: Update add-on version
-        run: sed -i "s/^version: .*/version: \"${{ github.ref_name }}\"/" ha-addon/config.yaml
+        run: |
+          sed -i 's/^version: .*/version: "${{ github.ref_name }}"/' charge-tracker/config.yaml
 
       - name: Build with Maven
         run: mvn package -DskipTests
