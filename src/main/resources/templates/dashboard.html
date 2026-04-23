@@ -342,7 +342,7 @@
             };
 
             try {
-                const response = await fetch('/api/sessions', {
+                const response = await fetch('./api/sessions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -362,7 +362,7 @@
             if (!confirm(t('confirmDelete'))) return;
 
             try {
-                const response = await fetch(`/api/sessions/${sessionId}`, {
+                const response = await fetch(`./api/sessions/${sessionId}`, {
                     method: 'DELETE'
                 });
 
@@ -386,7 +386,7 @@
             }
 
             try {
-                const response = await fetch(`/api/sessions?start=${start}T00:00:00&end=${end}T23:59:59`);
+                const response = await fetch(`./api/sessions?start=${start}T00:00:00&end=${end}T23:59:59`);
                 const sessions = await response.json();
                 updateSessionsTable(sessions);
             } catch (error) {
