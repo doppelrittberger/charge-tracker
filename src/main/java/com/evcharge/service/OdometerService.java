@@ -28,10 +28,10 @@ public class OdometerService {
     @Inject
     JsonStorageService storage;
 
-    @ConfigProperty(name = "ha.odometer.enabled", defaultValue = "false")
+    @ConfigProperty(name = "ha.enabled", defaultValue = "false")
     boolean enabled;
 
-    @ConfigProperty(name = "ha.odometer.token", defaultValue = "")
+    @ConfigProperty(name = "ha.token", defaultValue = "")
     String token;
 
     @ConfigProperty(name = "ha.odometer.entity", defaultValue = "sensor.skoda_odometer")
