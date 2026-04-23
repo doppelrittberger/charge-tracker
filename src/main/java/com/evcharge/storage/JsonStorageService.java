@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.io.File;
@@ -22,7 +23,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class JsonStorageService {
 
     private static final Logger LOG = Logger.getLogger(JsonStorageService.class);
-    private static final String DATA_FILE = "charge-sessions.json";
+
+    @ConfigProperty(name = "charge.tracker.data-file", defaultValue = "charge-sessions.json")
+    String dataFile;
     
     private final ConcurrentHashMap<Long, ChargeSession> sessionCache = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);
@@ -43,7 +46,7 @@ public class JsonStorageService {
     }
 
     private void loadFromFile() {
-        File file = new File(DATA_FILE);
+        File file = new File(dataFile);
         if (file.exists()) {
             try {
                 StorageWrapper wrapper = objectMapper.readValue(file, StorageWrapper.class);
@@ -56,7 +59,7 @@ public class JsonStorageService {
                     .orElse(0L);
                 idGenerator.set(maxId + 1);
                 
-                LOG.info("Loaded " + sessionCache.size() + " sessions from " + DATA_FILE);
+                LOG.info("Loaded " + sessionCache.size() + " sessions from " + dataFile);
             } catch (IOException e) {
                 LOG.error("Error loading data from file", e);
             }
@@ -65,10 +68,12 @@ public class JsonStorageService {
 
     private void saveToFile() {
         try {
+            File file = new File(dataFile);
+            if (file.getParentFile() != null) file.getParentFile().mkdirs();
             StorageWrapper wrapper = new StorageWrapper();
             wrapper.sessions = new ArrayList<>(sessionCache.values());
-            objectMapper.writeValue(new File(DATA_FILE), wrapper);
-            LOG.debug("Saved " + sessionCache.size() + " sessions to " + DATA_FILE);
+            objectMapper.writeValue(file, wrapper);
+            LOG.debug("Saved " + sessionCache.size() + " sessions to " + dataFile);
         } catch (IOException e) {
             LOG.error("Error saving data to file", e);
         }

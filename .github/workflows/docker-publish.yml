@@ -24,6 +24,9 @@ jobs:
         with:
           maven-version: 3.9.6
 
+      - name: Update add-on version
+        run: sed -i "s/^version: .*/version: \"${{ github.ref_name }}\"/" ha-addon/config.yaml
+
       - name: Build with Maven
         run: mvn package -DskipTests
 
