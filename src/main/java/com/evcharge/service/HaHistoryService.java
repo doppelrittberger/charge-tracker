@@ -35,21 +35,28 @@ public class HaHistoryService {
     String socEntity;
 
     public Optional<Integer> getSocAt(OffsetDateTime at) {
-        if (!enabled || token.isBlank()) return Optional.empty();
+        if (!enabled || token.isBlank()) {
+            LOG.debugf("HA SoC history skipped (disabled or no token) for %s", at);
+            return Optional.empty();
+        }
         try {
             String start = at.minusHours(1).format(FMT);
             String end = at.plusMinutes(1).format(FMT);
             List<List<HaApiClient.HaHistoryState>> result =
                 haApiClient.getHistory(start, socEntity, end, true, "Bearer " + token);
             if (result == null || result.isEmpty() || result.get(0).isEmpty()) {
+                LOG.debugf("HA SoC history: no states found for entity=%s at %s", socEntity, at);
                 return Optional.empty();
             }
             List<HaApiClient.HaHistoryState> states = result.get(0);
             String value = states.get(states.size() - 1).state;
             if (value == null || value.equals("unavailable") || value.equals("unknown")) {
+                LOG.debugf("HA SoC history: state unavailable for entity=%s at %s", socEntity, at);
                 return Optional.empty();
             }
-            return Optional.of((int) Math.round(Double.parseDouble(value)));
+            int soc = (int) Math.round(Double.parseDouble(value));
+            LOG.debugf("HA SoC history: resolved %d%% for entity=%s at %s", soc, socEntity, at);
+            return Optional.of(soc);
         } catch (Exception e) {
             LOG.warnf("Failed to fetch SoC history at %s: %s", at, e.getMessage());
             return Optional.empty();
@@ -57,21 +64,28 @@ public class HaHistoryService {
     }
 
     public Optional<Long> getOdometerAt(OffsetDateTime at) {
-        if (!enabled || token.isBlank()) return Optional.empty();
+        if (!enabled || token.isBlank()) {
+            LOG.debugf("HA odometer history skipped (disabled or no token) for %s", at);
+            return Optional.empty();
+        }
         try {
             String start = at.minusHours(2).format(FMT);
             String end = at.plusMinutes(1).format(FMT);
             List<List<HaApiClient.HaHistoryState>> result =
                 haApiClient.getHistory(start, odometerEntity, end, true, "Bearer " + token);
             if (result == null || result.isEmpty() || result.get(0).isEmpty()) {
+                LOG.debugf("HA odometer history: no states found for entity=%s at %s", odometerEntity, at);
                 return Optional.empty();
             }
             List<HaApiClient.HaHistoryState> states = result.get(0);
             String value = states.get(states.size() - 1).state;
             if (value == null || value.equals("unavailable") || value.equals("unknown")) {
+                LOG.debugf("HA odometer history: state unavailable for entity=%s at %s", odometerEntity, at);
                 return Optional.empty();
             }
-            return Optional.of(Math.round(Double.parseDouble(value)));
+            long odometer = Math.round(Double.parseDouble(value));
+            LOG.debugf("HA odometer history: resolved %d km for entity=%s at %s", odometer, odometerEntity, at);
+            return Optional.of(odometer);
         } catch (Exception e) {
             LOG.warnf("Failed to fetch odometer history at %s: %s", at, e.getMessage());
             return Optional.empty();

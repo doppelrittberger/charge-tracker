@@ -14,8 +14,8 @@ if [ -f "$OPTIONS" ]; then
     EVCC_ENABLED=$(jq -r '.evcc_import_enabled // "false"' "$OPTIONS")
     HA_URL=$(jq -r '.ha_url // "http://localhost:8123"' "$OPTIONS")
     HA_TOKEN=$(jq -r '.ha_token // ""' "$OPTIONS")
+    HA_ENABLED=$(jq -r '.ha_enabled // "false"' "$OPTIONS")
     HA_ENTITY=$(jq -r '.ha_odometer_entity // "sensor.skoda_odometer"' "$OPTIONS")
-    HA_ENABLED=$(jq -r '.ha_odometer_enabled // "false"' "$OPTIONS")
     SOC_ENTITY=$(jq -r '.ha_soc_entity // "sensor.skoda_state_of_charge"' "$OPTIONS")
     BATTERY_CAPACITY=$(jq -r '.vehicle_battery_capacity_kwh // "77.0"' "$OPTIONS")
 
@@ -25,8 +25,8 @@ if [ -f "$OPTIONS" ]; then
     echo "  EVCC_ENABLED=$EVCC_ENABLED"
     echo "  HA_URL=$HA_URL"
     echo "  HA_TOKEN=${HA_TOKEN:+<set>}${HA_TOKEN:-<empty>}"
-    echo "  HA_ENTITY=$HA_ENTITY"
     echo "  HA_ENABLED=$HA_ENABLED"
+    echo "  HA_ENTITY=$HA_ENTITY"
     echo "  SOC_ENTITY=$SOC_ENTITY"
     echo "  BATTERY_CAPACITY=$BATTERY_CAPACITY"
 else
@@ -40,7 +40,7 @@ exec java -jar /app/quarkus-run.jar \
     -Devcc.import.enabled="$EVCC_ENABLED" \
     -Dquarkus.rest-client.ha-api.url="$HA_URL" \
     -Dha.token="$HA_TOKEN" \
-    -Dha.odometer.entity="$HA_ENTITY" \
     -Dha.enabled="$HA_ENABLED" \
+    -Dha.odometer.entity="$HA_ENTITY" \
     -Dha.soc.entity="$SOC_ENTITY" \
     -Dvehicle.battery.capacity-kwh="$BATTERY_CAPACITY"

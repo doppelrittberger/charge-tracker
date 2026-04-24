@@ -4,6 +4,7 @@ import com.evcharge.dto.EvccSession;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
@@ -16,5 +17,10 @@ public interface EvccApiClient {
     @GET
     @Path("/sessions")
     @Produces(MediaType.APPLICATION_JSON)
-    List<EvccSession> getSessions();
+    List<EvccSession> getAllSessions();
+
+    @GET
+    @Path("/sessions")
+    @Produces(MediaType.APPLICATION_JSON)
+    List<EvccSession> getSessions(@QueryParam("month") Integer month, @QueryParam("year") Integer year);
 }

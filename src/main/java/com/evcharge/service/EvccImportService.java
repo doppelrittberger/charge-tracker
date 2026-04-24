@@ -16,6 +16,8 @@ import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
@@ -46,13 +48,37 @@ public class EvccImportService {
             return;
         }
         try {
-            List<EvccSession> response = evccApiClient.getSessions();
-            if (response == null) {
-                LOG.warn("evcc returned empty sessions response");
+            List<ChargeSession> existing = storage.findAll();
+
+            boolean hasEvccData = existing.stream().anyMatch(s -> s.evccId != null);
+            List<EvccSession> response = new ArrayList<>();
+
+            if (!hasEvccData) {
+                LOG.info("evcc import: no existing evcc data, fetching all sessions");
+                List<EvccSession> all = evccApiClient.getAllSessions();
+                if (all != null) response.addAll(all);
+            } else {
+                YearMonth currentMonth = YearMonth.now();
+                YearMonth fromMonth = existing.stream()
+                    .filter(s -> s.evccId != null && s.timestamp != null)
+                    .map(s -> YearMonth.from(s.timestamp))
+                    .min(YearMonth::compareTo)
+                    .orElse(currentMonth);
+
+                for (YearMonth ym = fromMonth; !ym.isAfter(currentMonth); ym = ym.plusMonths(1)) {
+                    List<EvccSession> batch = evccApiClient.getSessions(ym.getMonthValue(), ym.getYear());
+                    if (batch != null) {
+                        LOG.debugf("evcc import: fetched %d sessions for %s", batch.size(), ym);
+                        response.addAll(batch);
+                    }
+                }
+            }
+
+            if (response.isEmpty()) {
+                LOG.debug("evcc returned no sessions");
                 return;
             }
 
-            List<ChargeSession> existing = storage.findAll();
             int imported = 0;
             int enriched = 0;
 
@@ -80,6 +106,8 @@ public class EvccImportService {
                     session.socStart = haHistoryService.getSocAt(evccSession.created).orElse(0);
                     storage.save(session);
                     existing.add(session);
+                    LOG.infof("evcc import: new session evccId=%d created=%s kwh=%s price=%s odometer=%s socStart=%d",
+                        evccSession.id, created, kwh, pricePerKwh, session.odometerKm, session.socStart);
                     imported++;
                 } else {
                     boolean changed = false;
@@ -88,16 +116,23 @@ public class EvccImportService {
                         changed = true;
                     }
                     if (match.odometerKm == null) {
-                        match.odometerKm = resolveOdometer(evccSession);
-                        if (match.odometerKm != null) changed = true;
+                        Long resolved = resolveOdometer(evccSession);
+                        if (resolved != null) {
+                            match.odometerKm = resolved;
+                            LOG.infof("evcc enrich: evccId=%d odometer=%d km", evccSession.id, resolved);
+                            changed = true;
+                        }
                     }
                     if (match.socStart == null) {
                         match.socStart = haHistoryService.getSocAt(evccSession.created).orElse(0);
+                        LOG.infof("evcc enrich: evccId=%d socStart=%d%%", evccSession.id, match.socStart);
                         changed = true;
                     }
                     if (changed) {
                         storage.save(match);
                         enriched++;
+                    } else {
+                        LOG.debugf("evcc import: evccId=%d already up-to-date", evccSession.id);
                     }
                 }
             }

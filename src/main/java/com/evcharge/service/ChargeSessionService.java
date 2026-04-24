@@ -10,6 +10,7 @@ import com.evcharge.storage.JsonStorageService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -23,6 +24,8 @@ import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class ChargeSessionService {
+
+    private static final Logger LOG = Logger.getLogger(ChargeSessionService.class);
 
     @Inject
     JsonStorageService storage;
@@ -43,6 +46,9 @@ public class ChargeSessionService {
         session.odometerKm = request.odometerKm;
         session.socStart = request.socStart;
         ChargeSession storedSession = storage.save(session);
+        LOG.infof("Session created: id=%d timestamp=%s kwh=%s price=%s odometer=%s socStart=%s",
+            storedSession.sessionId, storedSession.timestamp, storedSession.kwhAmount,
+            storedSession.pricePerKwh, storedSession.odometerKm, storedSession.socStart);
         return toResponses(storage.findAll()).stream()
             .filter(r -> r.sessionId.equals(storedSession.sessionId))
             .findFirst().orElse(new ChargeSessionResponse(storedSession, null, batteryCapacityKwh));
@@ -50,7 +56,14 @@ public class ChargeSessionService {
 
     public ChargeSessionResponse updateSession(Long id, ChargeSessionRequest request) {
         ChargeSession session = storage.findById(id);
-        if (session == null) return null;
+        if (session == null) {
+            LOG.warnf("Update failed: session id=%d not found", id);
+            return null;
+        }
+        LOG.infof("Session update id=%d: timestamp=%s->%s kwh=%s->%s price=%s->%s odometer=%s->%s socStart=%s->%s",
+            id, session.timestamp, request.timestamp, session.kwhAmount, request.kwhAmount,
+            session.pricePerKwh, request.pricePerKwh, session.odometerKm, request.odometerKm,
+            session.socStart, request.socStart);
         session.timestamp = request.timestamp != null ? request.timestamp : session.timestamp;
         session.kwhAmount = request.kwhAmount;
         session.pricePerKwh = request.pricePerKwh;
@@ -135,7 +148,15 @@ public class ChargeSessionService {
     }
 
     public boolean deleteSession(Long id) {
-        return storage.deleteById(id);
+        ChargeSession session = storage.findById(id);
+        boolean deleted = storage.deleteById(id);
+        if (deleted) {
+            LOG.infof("Session deleted: id=%d timestamp=%s kwh=%s",
+                id, session != null ? session.timestamp : "?", session != null ? session.kwhAmount : "?");
+        } else {
+            LOG.warnf("Delete failed: session id=%d not found", id);
+        }
+        return deleted;
     }
 
     public StatisticsResponse getStatistics() {
