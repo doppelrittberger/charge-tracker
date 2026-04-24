@@ -42,7 +42,7 @@ public class EvccImportService {
         importSessions();
     }
 
-    @Scheduled(every = "5m", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    @Scheduled(every = "5m", delay = 5, delayUnit = java.util.concurrent.TimeUnit.MINUTES, concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     public void importSessions() {
         if (!importEnabled) {
             return;
