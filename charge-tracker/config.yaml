@@ -29,6 +29,7 @@ options:
   ha_odometer_entity: sensor.skoda_elroq_kilometerstand
   ha_soc_entity: sensor.skoda_elroq_batteriestand
   vehicle_battery_capacity_kwh: 77.0
+  charge_tracker_data_file: /share/charge-sessions.json
 schema:
   evcc_url: str
   evcc_import_enabled: bool
@@ -38,6 +39,7 @@ schema:
   ha_odometer_entity: str
   ha_soc_entity: str
   vehicle_battery_capacity_kwh: float
+  charge_tracker_data_file: str
 startup: application
 panel_icon: mdi:ev-station
 panel_admin: false

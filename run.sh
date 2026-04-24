@@ -18,6 +18,7 @@ if [ -f "$OPTIONS" ]; then
     HA_ENTITY=$(jq -r '.ha_odometer_entity // "sensor.skoda_odometer"' "$OPTIONS")
     SOC_ENTITY=$(jq -r '.ha_soc_entity // "sensor.skoda_state_of_charge"' "$OPTIONS")
     BATTERY_CAPACITY=$(jq -r '.vehicle_battery_capacity_kwh // "77.0"' "$OPTIONS")
+    CHARGE_TRACKER_DATA_FILE=$(jq -r '.charge_tracker_data_file // "/share/charge-sessions.json"' "$OPTIONS")
 
     echo "[run.sh] Resolved config:"
     echo "  DATA_FILE=$DATA_FILE"
@@ -29,6 +30,7 @@ if [ -f "$OPTIONS" ]; then
     echo "  HA_ENTITY=$HA_ENTITY"
     echo "  SOC_ENTITY=$SOC_ENTITY"
     echo "  BATTERY_CAPACITY=$BATTERY_CAPACITY"
+    echo "  CHARGE_TRACKER_DATA_FILE=$CHARGE_TRACKER_DATA_FILE"
 else
     echo "[run.sh] WARNING: $OPTIONS not found — using built-in defaults"
 fi
@@ -43,4 +45,5 @@ exec java -jar /app/quarkus-run.jar \
     -Dha.enabled="$HA_ENABLED" \
     -Dha.odometer.entity="$HA_ENTITY" \
     -Dha.soc.entity="$SOC_ENTITY" \
-    -Dvehicle.battery.capacity-kwh="$BATTERY_CAPACITY"
+    -Dvehicle.battery.capacity-kwh="$BATTERY_CAPACITY" \
+    -Dcharge.tracker.data-file="$CHARGE_TRACKER_DATA_FILE"
