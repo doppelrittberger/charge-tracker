@@ -39,9 +39,6 @@ public class JsonStorageService {
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    }
-
-    void onStart(@Observes @Priority(100) StartupEvent ev) {
         loadFromFile();
     }
 

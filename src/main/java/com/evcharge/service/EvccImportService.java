@@ -4,11 +4,8 @@ import com.evcharge.client.EvccApiClient;
 import com.evcharge.dto.EvccSession;
 import com.evcharge.model.ChargeSession;
 import com.evcharge.storage.JsonStorageService;
-import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -38,11 +35,7 @@ public class EvccImportService {
     @ConfigProperty(name = "evcc.import.enabled", defaultValue = "false")
     boolean importEnabled;
 
-    void onStart(@Observes @Priority(200) StartupEvent ev) {
-        importSessions();
-    }
-
-    @Scheduled(every = "5m", delay = 5, delayUnit = java.util.concurrent.TimeUnit.MINUTES, concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
+    @Scheduled(every = "5m", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     public void importSessions() {
         if (!importEnabled) {
             return;
