@@ -18,21 +18,25 @@ public class HaHistoryService {
     private static final Logger LOG = Logger.getLogger(HaHistoryService.class);
     private static final DateTimeFormatter FMT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
+    private final HaApiClient haApiClient;
+    private final boolean enabled;
+    private final String token;
+    private final String odometerEntity;
+    private final String socEntity;
+
     @Inject
-    @RestClient
-    HaApiClient haApiClient;
-
-    @ConfigProperty(name = "ha.enabled", defaultValue = "false")
-    boolean enabled;
-
-    @ConfigProperty(name = "ha.token", defaultValue = "")
-    String token;
-
-    @ConfigProperty(name = "ha.odometer.entity", defaultValue = "sensor.skoda_odometer")
-    String odometerEntity;
-
-    @ConfigProperty(name = "ha.soc.entity", defaultValue = "sensor.skoda_state_of_charge")
-    String socEntity;
+    public HaHistoryService(
+            @RestClient HaApiClient haApiClient,
+            @ConfigProperty(name = "ha.enabled") boolean enabled,
+            @ConfigProperty(name = "ha.token") String token,
+            @ConfigProperty(name = "ha.odometer.entity") String odometerEntity,
+            @ConfigProperty(name = "ha.soc.entity") String socEntity) {
+        this.haApiClient = haApiClient;
+        this.enabled = enabled;
+        this.token = token;
+        this.odometerEntity = odometerEntity;
+        this.socEntity = socEntity;
+    }
 
     public Optional<Integer> getSocAt(OffsetDateTime at) {
         if (!enabled || token.isBlank()) {

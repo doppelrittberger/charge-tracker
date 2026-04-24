@@ -27,14 +27,19 @@ public class ChargeSessionService {
 
     private static final Logger LOG = Logger.getLogger(ChargeSessionService.class);
 
-    @Inject
-    JsonStorageService storage;
+    private final JsonStorageService storage;
+    private final OdometerService odometerService;
+    private final BigDecimal batteryCapacityKwh;
 
     @Inject
-    OdometerService odometerService;
-
-    @ConfigProperty(name = "vehicle.battery.capacity-kwh", defaultValue = "77.0")
-    BigDecimal batteryCapacityKwh;
+    public ChargeSessionService(
+            JsonStorageService storage,
+            OdometerService odometerService,
+            @ConfigProperty(name = "vehicle.battery.capacity-kwh") BigDecimal batteryCapacityKwh) {
+        this.storage = storage;
+        this.odometerService = odometerService;
+        this.batteryCapacityKwh = batteryCapacityKwh;
+    }
 
     public ChargeSessionResponse createSession(ChargeSessionRequest request) {
         ChargeSession session = new ChargeSession(

@@ -21,28 +21,32 @@ public class OdometerService {
 
     private static final Logger LOG = Logger.getLogger(OdometerService.class);
 
-    @Inject
-    @RestClient
-    HaApiClient haApiClient;
-
-    @Inject
-    JsonStorageService storage;
-
-    @ConfigProperty(name = "ha.enabled", defaultValue = "false")
-    boolean enabled;
-
-    @ConfigProperty(name = "ha.token", defaultValue = "")
-    String token;
-
-    @ConfigProperty(name = "ha.odometer.entity", defaultValue = "sensor.skoda_odometer")
-    String entityId;
-
-    @ConfigProperty(name = "ha.soc.entity", defaultValue = "sensor.skoda_state_of_charge")
-    String socEntityId;
+    private final HaApiClient haApiClient;
+    private final JsonStorageService storage;
+    private final boolean enabled;
+    private final String token;
+    private final String entityId;
+    private final String socEntityId;
 
     private Long latestOdometer = null;
     private Integer latestSoc = null;
     private YearMonth lastSnapshotMonth = null;
+
+    @Inject
+    public OdometerService(
+            @RestClient HaApiClient haApiClient,
+            JsonStorageService storage,
+            @ConfigProperty(name = "ha.enabled") boolean enabled,
+            @ConfigProperty(name = "ha.token") String token,
+            @ConfigProperty(name = "ha.odometer.entity") String entityId,
+            @ConfigProperty(name = "ha.soc.entity") String socEntityId) {
+        this.haApiClient = haApiClient;
+        this.storage = storage;
+        this.enabled = enabled;
+        this.token = token;
+        this.entityId = entityId;
+        this.socEntityId = socEntityId;
+    }
 
     void onStart(@Observes StartupEvent ev) {
         fetchOdometer();

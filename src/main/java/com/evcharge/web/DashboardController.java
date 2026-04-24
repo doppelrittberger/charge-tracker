@@ -11,20 +11,27 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import java.math.BigDecimal;
+
 @Path("/")
 public class DashboardController {
 
-    @Inject
-    Template dashboard;
+    private final Template dashboard;
+    private final ChargeSessionService service;
+    private final OdometerService odometerService;
+    private final BigDecimal batteryCapacityKwh;
 
     @Inject
-    ChargeSessionService service;
-
-    @Inject
-    OdometerService odometerService;
-
-    @ConfigProperty(name = "vehicle.battery.capacity-kwh", defaultValue = "77.0")
-    java.math.BigDecimal batteryCapacityKwh;
+    public DashboardController(
+            Template dashboard,
+            ChargeSessionService service,
+            OdometerService odometerService,
+            @ConfigProperty(name = "vehicle.battery.capacity-kwh") BigDecimal batteryCapacityKwh) {
+        this.dashboard = dashboard;
+        this.service = service;
+        this.odometerService = odometerService;
+        this.batteryCapacityKwh = batteryCapacityKwh;
+    }
 
     @GET
     @Produces(MediaType.TEXT_HTML)

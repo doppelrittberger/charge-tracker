@@ -9,6 +9,7 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -26,19 +27,23 @@ public class JsonStorageService {
 
     private static final Logger LOG = Logger.getLogger(JsonStorageService.class);
 
-    @ConfigProperty(name = "charge.tracker.data-file", defaultValue = "charge-sessions.json")
-    String dataFile;
-    
+    private final String dataFile;
     private final ConcurrentHashMap<Long, ChargeSession> sessionCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, OdometerSnapshot> snapshotCache = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);
     private final ObjectMapper objectMapper;
 
-    public JsonStorageService() {
+    @Inject
+    public JsonStorageService(
+            @ConfigProperty(name = "charge.tracker.data-file") String dataFile) {
+        this.dataFile = dataFile;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
+    void onStart(@Observes @Priority(100) StartupEvent ev) {
         loadFromFile();
     }
 

@@ -22,18 +22,22 @@ public class EvccImportService {
 
     private static final Logger LOG = Logger.getLogger(EvccImportService.class);
 
-    @Inject
-    @RestClient
-    EvccApiClient evccApiClient;
+    private final EvccApiClient evccApiClient;
+    private final JsonStorageService storage;
+    private final HaHistoryService haHistoryService;
+    private final boolean importEnabled;
 
     @Inject
-    JsonStorageService storage;
-
-    @Inject
-    HaHistoryService haHistoryService;
-
-    @ConfigProperty(name = "evcc.import.enabled", defaultValue = "false")
-    boolean importEnabled;
+    public EvccImportService(
+            @RestClient EvccApiClient evccApiClient,
+            JsonStorageService storage,
+            HaHistoryService haHistoryService,
+            @ConfigProperty(name = "evcc.import.enabled") boolean importEnabled) {
+        this.evccApiClient = evccApiClient;
+        this.storage = storage;
+        this.haHistoryService = haHistoryService;
+        this.importEnabled = importEnabled;
+    }
 
     @Scheduled(every = "5m", concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     public void importSessions() {
