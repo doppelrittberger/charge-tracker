@@ -210,18 +210,15 @@ public class ChargeSessionService {
         Map<YearMonth, List<ChargeSession>> byMonth = sessions.stream()
             .collect(Collectors.groupingBy(s -> YearMonth.from(s.timestamp)));
 
-        List<OdometerSnapshot> sortedSnaps = snapshots.stream()
-            .sorted(Comparator.comparing(s -> s.getYearMonth()))
-            .collect(Collectors.toList());
+        Map<YearMonth, OdometerSnapshot> snapshotByMonth = snapshots.stream()
+            .collect(Collectors.toMap(OdometerSnapshot::getYearMonth, s -> s));
 
         List<MonthlyStats> result = new ArrayList<>();
 
-        for (int i = 0; i < sortedSnaps.size(); i++) {
-            OdometerSnapshot current = sortedSnaps.get(i);
-            YearMonth month = current.getYearMonth();
-            Optional<OdometerSnapshot> prev = i > 0 ? Optional.of(sortedSnaps.get(i - 1)) : Optional.empty();
+        for (Map.Entry<YearMonth, List<ChargeSession>> entry : byMonth.entrySet()) {
+            YearMonth month = entry.getKey();
+            List<ChargeSession> monthSessions = entry.getValue();
 
-            List<ChargeSession> monthSessions = byMonth.getOrDefault(month, List.of());
             BigDecimal cost = monthSessions.stream()
                 .map(ChargeSession::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -231,7 +228,24 @@ public class ChargeSessionService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 
-            Long kmDriven = prev.map(p -> current.odometerKm - p.odometerKm).orElse(null);
+            // Calculate kmDriven from odometer snapshots (snapshot is at beginning of month)
+            OdometerSnapshot currentSnapshot = snapshotByMonth.get(month);
+            Long kmDriven = null;
+            if (currentSnapshot != null) {
+                YearMonth nextMonth = month.plusMonths(1);
+                OdometerSnapshot nextSnapshot = snapshotByMonth.get(nextMonth);
+                if (nextSnapshot != null) {
+                    kmDriven = nextSnapshot.odometerKm - currentSnapshot.odometerKm;
+                } else {
+                    // If no next snapshot, use latest available odometer
+                    long latestOdometer = odometerService.getOdometer().orElse(0L);
+                    kmDriven = latestOdometer - currentSnapshot.odometerKm;
+                }
+                if (kmDriven <= 0) {
+                    kmDriven = null;
+                }
+            }
+
             BigDecimal pricePer100km = null;
             if (kmDriven != null && kmDriven > 0 && cost.compareTo(BigDecimal.ZERO) > 0) {
                 pricePer100km = cost
